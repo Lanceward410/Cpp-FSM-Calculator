@@ -1,0 +1,60 @@
+1. Start State
+   
+Action: Initialize FSM.
+
+Transition: Proceed to the "Resolve Parentheses" state.
+
+
+2. Resolve Parentheses State
+   
+Action: Search for the innermost pair of parentheses in the input expression.
+
+Condition:
+    Parentheses Found: Extract the sub-expression within them.
+    No Parentheses: Move to the "Handle Exponent" state.
+    Sub-Action (with Parentheses): Pass the sub-expression through the FSM to obtain its evaluation result.
+
+Replace the sub-expression with this result.
+
+Return to the "Resolve Parentheses" state to check for additional parentheses.
+
+
+3. Handle Exponent State
+   
+Action: Process all exponentiation operations (^).
+
+Sub-Actions:
+    Identify operators from the expression and their operands.
+    Apply each exponentiation operation sequentially from left to right.
+    Replace each evaluated operation with its result.
+
+Transition: Proceed to the "Handle Multiplication/Division" state.
+
+
+4. Handle Multiplication/Division State
+   
+Action: Process multiplication (*) and division (/) operations sequentially.
+
+Sub-Actions:
+    Identify operators and operands.
+    Apply each multiplication and division operation in the sequence they occur.
+    Replace each evaluated operation with its result.
+
+Transition: Proceed to the "Handle Addition/Subtraction" state.
+
+
+5. Handle Addition/Subtraction State
+   
+Action: Process addition (+) and subtraction (-) operations sequentially.
+
+Sub-Actions:
+    Identify operators and operands.
+    Apply each addition and subtraction operation in the sequence they occur.
+    Replace each evaluated operation with its result.
+
+Transition: Proceed to the "Stop" state.
+
+
+6. Stop State
+   
+Action: Conclude FSM processing and output the final result.

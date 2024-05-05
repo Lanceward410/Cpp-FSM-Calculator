@@ -1,0 +1,165 @@
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <cmath>
+#include <algorithm>
+
+using namespace std;
+
+enum States {
+    start, resolve_parentheses, handle_exponent, handle_mult_div, handle_add_sub, stop
+};
+
+// Forward declaration of FSM function
+void fsm(string& expression);
+
+// Function to apply arithmetic operations
+double applyOperator(double left, double right, char op) {
+    switch (op) {
+        case '+': return left + right;
+        case '-': return left - right;
+        case '*': return left * right;
+        case '/': return left / right;
+        case '^': return pow(left, right);
+        default: throw invalid_argument("Unknown operator");
+    }
+}
+
+// Function to evaluate expressions sequentially (left to right) with specified operators
+string evaluateSequentially(const string& expression, const string& targetOperators) {
+    cout << "Evaluating expression '" << expression << "' with operators: " << targetOperators << endl;
+
+    istringstream iss(expression);
+    vector<double> numbers;
+    vector<char> operators;
+    double num;
+    char op;
+
+    // Read the first number
+    iss >> num;
+    numbers.push_back(num);
+
+    // Extract remaining numbers and operators
+    while (iss >> op >> num) {
+        operators.push_back(op);
+        numbers.push_back(num);
+    }
+
+    // Process operators sequentially
+    size_t i = 0;
+    while (i < operators.size()) {
+        char currentOp = operators[i];
+        if (targetOperators.find(currentOp) != string::npos) {
+            double result = applyOperator(numbers[i], numbers[i + 1], currentOp);
+            cout << "Applying operator '" << currentOp << "' to " << numbers[i] << " and " << numbers[i + 1] << " => " << result << endl;
+            numbers[i] = result;
+            numbers.erase(numbers.begin() + i + 1);
+            operators.erase(operators.begin() + i);
+        } else {
+            ++i;
+        }
+    }
+
+    // Reconstruct the expression string from the remaining numbers and operators
+    ostringstream newExpr;
+    newExpr << numbers[0];
+    for (size_t i = 0; i < operators.size(); ++i) {
+        newExpr << operators[i] << numbers[i + 1];
+    }
+
+    cout << "Result after evaluating with operators '" << targetOperators << "': " << newExpr.str() << endl;
+    return newExpr.str();
+}
+
+// Function to resolve the innermost set of parentheses
+string resolveInnermostParentheses(string expression) {
+    size_t startPos = expression.find_last_of('(');
+    while (startPos != string::npos) {
+        size_t endPos = expression.find(')', startPos);
+        if (endPos == string::npos) {
+            throw invalid_argument("Mismatched parentheses");
+        }
+
+        string subExpr = expression.substr(startPos + 1, endPos - startPos - 1);
+        cout << "Evaluating inner expression: " << subExpr << endl;
+
+        // Recursively resolve the inner expression using FSM
+        string result = subExpr;
+        fsm(result);
+
+        expression = expression.substr(0, startPos) + result + expression.substr(endPos + 1);
+        startPos = expression.find_last_of('(');
+    }
+
+    return expression;
+}
+
+// FSM function to evaluate arithmetic expressions
+void fsm(string& expression) {
+    States state = start;
+
+    while (state != stop) {
+        switch (state) {
+            case start:
+                cout << "Entering start state" << endl;
+                state = resolve_parentheses;
+                break;
+
+            case resolve_parentheses:
+                cout << "Resolving parentheses in: " << expression << endl;
+                expression = resolveInnermostParentheses(expression);
+                state = handle_exponent;
+                break;
+
+            case handle_exponent:
+                cout << "Handling exponents in: " << expression << endl;
+                expression = evaluateSequentially(expression, "^");
+                state = handle_mult_div;
+                break;
+
+            case handle_mult_div:
+                cout << "Handling multiplication and division sequentially in: " << expression << endl;
+                expression = evaluateSequentially(expression, "*/");
+                state = handle_add_sub;
+                break;
+
+            case handle_add_sub:
+                cout << "Handling addition and subtraction sequentially in: " << expression << endl;
+                expression = evaluateSequentially(expression, "+-");
+                state = stop;
+                break;
+
+            case stop:
+                cout << "FSM has stopped" << endl;
+                break;
+        }
+    }
+
+    cout << "Final result: " << expression << endl;
+}
+
+// Function to handle user input and initiate the FSM in a loop
+void doThings() {
+    while (true) {
+        string expression;
+        cout << "Enter the arithmetic expression (or type 'exit' to quit): ";
+        getline(cin, expression);
+
+        // Exit the loop if the user types 'exit'
+        if (expression == "exit") {
+            break;
+        }
+
+        // Remove whitespace from the expression
+        expression.erase(remove_if(expression.begin(), expression.end(), ::isspace), expression.end());
+
+        // Start the FSM to evaluate the expression
+        fsm(expression);
+    }
+}
+
+int main() {
+    doThings();
+    return 0;
+}
