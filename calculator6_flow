@@ -11,22 +11,24 @@ enum States {
     start, resolve_parentheses, handle_exponent, handle_mult_div, handle_add_sub, stop
 };
 
-// Forward declaration of the FSM function
+bool shouldRemove(char c) {
+    return !isdigit(c) && c != '+' && c != '-' && c != '*' && c != '/' && c != '^' && c != '(' && c != ')' && c != 'e' && c != '.' && c != '%';
+}
+
 void fsm(string& expression);
 
-// Function to apply arithmetic operations based on an operator
 double applyOperator(double left, double right, char op) {
     switch (op) {
         case '+': return left + right;
         case '-': return left - right;
         case '*': return left * right;
         case '/': return left / right;
+        case '%': return fmod(left,right);
         case '^': return pow(left, right);
-        default: throw invalid_argument("Unknown operator");
+        default: throw invalid_argument("Unknown operator! Try again."); //redundancy?
     }
 }
 
-// Function to evaluate expressions sequentially (left to right) with specific operators
 string evaluateSequentially(const string& expression, const string& targetOperators) {
     istringstream iss(expression);
     vector<double> numbers;
@@ -34,51 +36,48 @@ string evaluateSequentially(const string& expression, const string& targetOperat
     double num;
     char op;
 
-    // Read the first number
     iss >> num;
     numbers.push_back(num);
 
-    // Extract remaining numbers and operators
     while (iss >> op >> num) {
         operators.push_back(op);
         numbers.push_back(num);
     }
 
-    // Process operators sequentially
     size_t i = 0;
     while (i < operators.size()) {
         if (targetOperators.find(operators[i]) != string::npos) {
             double result = applyOperator(numbers[i], numbers[i + 1], operators[i]);
             numbers[i] = result;
-            numbers.erase(numbers.begin() + i + 1);
+            numbers.erase(numbers.begin() + 1 + i);
             operators.erase(operators.begin() + i);
         } else {
             ++i;
         }
     }
 
-    // Reconstruct the expression string from the remaining numbers and operators
-    ostringstream newExpr;
-    newExpr << numbers[0];
+    ostringstream newExpression;
+    newExpression << numbers[0];
     for (size_t i = 0; i < operators.size(); ++i) {
-        newExpr << operators[i] << numbers[i + 1];
+        newExpression << operators[i] << numbers[i + 1];
     }
 
-    return newExpr.str();
+    return newExpression.str();
 }
 
-// Function to resolve the innermost set of parentheses
 string resolveInnermostParentheses(string expression) {
     size_t startPos = expression.find_last_of('(');
     while (startPos != string::npos) {
         size_t endPos = expression.find(')', startPos);
         if (endPos == string::npos) {
-            throw invalid_argument("Mismatched parentheses");
+            throw invalid_argument("Mismatched parentheses! Try again.");
+        }
+        if (endPos == startPos + 1) {
+            throw invalid_argument("Empty parentheses are not allowed! Try again.");
         }
 
         string subExpr = expression.substr(startPos + 1, endPos - startPos - 1);
 
-        // Recursively resolve the inner expression using FSM
         string result = subExpr;
         fsm(result);
 
@@ -89,7 +88,6 @@ string resolveInnermostParentheses(string expression) {
     return expression;
 }
 
-// FSM function to evaluate arithmetic expressions
 void fsm(string& expression) {
     States state = start;
 
@@ -110,7 +108,7 @@ void fsm(string& expression) {
                 break;
 
             case handle_mult_div:
-                expression = evaluateSequentially(expression, "*/");
+                expression = evaluateSequentially(expression, "*/%");
                 state = handle_add_sub;
                 break;
 
@@ -125,23 +123,38 @@ void fsm(string& expression) {
     }
 }
 
-// Function to handle user input and initiate the FSM in a loop
 void doThings() {
     while (true) {
         string expression;
         cout << "Enter the arithmetic expression (or type 'exit' to quit): ";
         getline(cin, expression);
 
-        // Exit the loop if the user types 'exit'
         if (expression == "exit") {
+        cout << "Thanks for trying out my C++ calculator" << endl;
             break;
         }
+        
+        if (expression.empty()) {
+        cout << "No user input at all! Try again." << endl;
+            continue;
+        }
 
-        // Remove whitespace from the expression
-        expression.erase(remove_if(expression.begin(), expression.end(), ::isspace), expression.end());
+        expression.erase(remove_if(expression.begin(), expression.end(), shouldRemove), expression.end());
 
-        fsm(expression);
+        if (expression.empty()) {
+        cout << "No valid input! No characters recognized. Try again." << endl;
+            continue;
+        }
+        
+        try {
+            fsm(expression);
+        } catch (const invalid_argument& e) {
+            cout << "Error: " << e.what() << endl;
+            continue;
+        }
+
         cout << "Result: " << expression << endl;
+        expression = "0";
     }
 }
 
